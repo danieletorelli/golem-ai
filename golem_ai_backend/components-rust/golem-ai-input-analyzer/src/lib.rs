@@ -2,20 +2,18 @@
 mod bindings;
 
 use crate::bindings::exports::golem_ai::input_analyzer_exports::golem_ai_input_analyzer_api::*;
+use crate::bindings::golem_ai::entry_categorizer_client::golem_ai_entry_categorizer_client::Entry as CategorizedEntry;
 use crate::bindings::golem_ai::entry_categorizer_client::golem_ai_entry_categorizer_client::GolemAiEntryCategorizerApi;
-use crate::bindings::golem_ai::entry_categorizer_client::golem_ai_entry_categorizer_client::{RawEntry as CategorizerRawEntry};
-use crate::bindings::golem_ai::entry_categorizer_client::golem_ai_entry_categorizer_client::{Entry as CategorizedEntry};
-// Import for using common lib (also see Cargo.toml for adding the dependency):
-// use common_lib::example_common_function;
+use crate::bindings::golem_ai::entry_categorizer_client::golem_ai_entry_categorizer_client::RawEntry as CategorizerRawEntry;
 use common_lib::{ask_openai, get_openai_api_key, OpenAIRequest};
 use std::cell::RefCell;
-use serde::{Deserialize, Serialize};
 
 struct Input {
     input: String,
     entries: Vec<RawEntry>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Eq, PartialEq)]
 struct RawEntry {
     category: String,
     data: String,
@@ -30,15 +28,18 @@ thread_local! {
 
 struct InputAnalyzer;
 
-
-fn get_categories_from_json_markdown(json: String) -> Result<Vec<CategoryWithData>, String> {
-    let s = json.strip_prefix("```json").and_then(|s| s.strip_suffix("```")).unwrap_or(&json).trim();
-    let entries: Vec<CategoryWithData> = serde_json::from_str(s).map_err(|e| e.to_string())?;
+fn get_categories_from_json_markdown(json: String) -> Result<Vec<RawEntry>, String> {
+    let s = json
+        .strip_prefix("```json")
+        .and_then(|s| s.strip_suffix("```"))
+        .unwrap_or(&json)
+        .trim();
+    let entries: Vec<RawEntry> = serde_json::from_str(s).map_err(|e| e.to_string())?;
     Ok(entries)
 }
 
-fn categorize_entries_par(entries: Vec<CategoryWithData>) -> Vec<Result<CategorizedEntry,String>> {
-    println!("CATGORIZE ENTRIES: {}", entries.len());
+fn categorize_entries_par(entries: Vec<RawEntry>) -> Vec<Result<CategorizedEntry, String>> {
+    println!("CATEGORIZE ENTRIES: {}", entries.len());
 
     let mut futures = vec![];
     let mut subs = vec![];
@@ -53,10 +54,10 @@ fn categorize_entries_par(entries: Vec<CategoryWithData>) -> Vec<Result<Categori
 
     let n = futures.len();
 
-    println!("CATGORIZE ENTRIES INVOKED: {}", n);
+    println!("CATEGORIZE ENTRIES INVOKED: {}", n);
     // https://learn.golem.cloud/common-language-guide/rpc#writing-non-blocking-remote-calls
 
-    let mut values: Vec<Result<CategorizedEntry,String>> = vec![Err("Not ready".to_string()); n];
+    let mut values: Vec<Result<CategorizedEntry, String>> = vec![Err("Not ready".to_string()); n];
     let mut mapping: Vec<usize> = (0..n).collect();
     let mut remaining = subs.iter().collect::<Vec<_>>();
 
@@ -104,7 +105,7 @@ fn categorize_entries_par(entries: Vec<CategoryWithData>) -> Vec<Result<Categori
     values
 }
 
-fn categorize_entries(entries: Vec<CategoryWithData>) -> Vec<Result<CategorizedEntry,String>> {
+fn categorize_entries(entries: Vec<RawEntry>) -> Vec<Result<CategorizedEntry, String>> {
     let api = GolemAiEntryCategorizerApi::new();
     let mut results = vec![];
     for entry in entries {
@@ -115,14 +116,8 @@ fn categorize_entries(entries: Vec<CategoryWithData>) -> Vec<Result<CategorizedE
     results
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CategoryWithData {
-    pub category: String,
-    pub data: String,
-}
-
-impl From<CategoryWithData> for CategorizerRawEntry {
-    fn from(value: CategoryWithData) -> Self {
+impl From<RawEntry> for CategorizerRawEntry {
+    fn from(value: RawEntry) -> Self {
         CategorizerRawEntry {
             category: value.category,
             data: value.data,
@@ -173,7 +168,7 @@ impl Guest for InputAnalyzer {
             Err(e) => {
                 println!("ANALYZE ERROR: {}", e);
                 Err(e)
-            },
+            }
         }
     }
 
