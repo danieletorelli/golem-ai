@@ -37,16 +37,8 @@ fn get_categories_from_json_markdown(json: String) -> Result<Vec<CategoryWithDat
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CategoryWithData {
     pub category: String,
-    pub data: CategoryData,
+    pub data: String,
 }
-
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CategoryData {
-    pub description: String,
-    pub link: Option<String>
-}
-
 
 pub fn context() -> String {
     "You are a helpful assistant. Your role is to read and extract all the entries present in a Notion document written in markdown. The entries represent potential features or bugfixes or an application. They are categorized in specific sections, that represent the importance of each entry. Some of them are already done, others are in todo or in progress. Collect all the entries. Represent each entry as a JSON object containing, 2 keys: 'category' (string), representing the importance of the entry and 'data' (string), representing all the raw description of the feature or bug, including the nested elements of the entry with any link or code snippet. All those JSON object can be placed in a JSON list. The JSON can be compact, with no extra characters added. It's very important that you return me only a valid JSON structure, don't return any markdown prefix and don't anny any extra space or newline characters, because I will have to parse your response in JSON directly so it should be very clean and compact.".to_string()
