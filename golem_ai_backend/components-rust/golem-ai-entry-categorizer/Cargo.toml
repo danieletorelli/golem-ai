@@ -34,6 +34,7 @@ path = "wit-generated"
 "golem:rpc" = { path = "wit-generated/deps/golem-rpc" }
 "golem-ai:input-analyzer-client" = { path = "wit-generated/deps/golem-ai_input-analyzer-client" }
 "golem-ai:entry-categorizer-exports" = { path = "wit-generated/deps/golem-ai_entry-categorizer-exports" }
+"golem-ai:input-analyzer-exports" = { path = "wit-generated/deps/golem-ai_input-analyzer-exports" }
 # See https://github.com/bytecodealliance/cargo-component/blob/main/src/metadata.rs#L62
 
 # derives = ["serde::Serialize", "serde::Deserialize"]
