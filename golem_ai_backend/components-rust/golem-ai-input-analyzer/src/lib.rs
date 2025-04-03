@@ -8,29 +8,18 @@ use common_lib::{ask_openai, get_openai_api_key, OpenAIRequest};
 use std::cell::RefCell;
 
 struct Context {
-    history: Vec<Response>,
-}
-impl Default for Context {
-    fn default() -> Self {
-        Self {
-            history: Vec::new(),
-        }
-    }
-}
-
-struct Response {
-    message: String,
-    response: String,
+    input: String,
+    entries: Vec<String>,
 }
 
 thread_local! {
-    static CONTEXT: RefCell<Context> = RefCell::new(Context::default());
+    static CONTEXT: RefCell<Context> = RefCell::new();
 }
 
 struct InputAnalyzer;
 
 pub fn context() -> String {
-    "You are a helpful assistant. Your role is to read and extract all the entries present in a notion document. Some of them are already done".to_string()
+    "You are a helpful assistant. Your role is to read and extract all the entries present in a Notion document written in markdown. The entries represent potential features or bugfixes or an application. They are categorized in specific sections, that represent the importance of each entry. Some of them are already done, others are in todo or in progress. Collect all the entries. Represent each entry as a JSON object containing, 2 keys: 'category', representing the importance of the entry and 'data', representing all the raw description of the feature or bug, including the nested elements of the entry with any link or code snippet. All those JSON object can be placed in a JSON list. It's very important that you return me only the JSON structure, because I will have to parse your response in JSON.".to_string()
 }
 
 impl Guest for InputAnalyzer {
