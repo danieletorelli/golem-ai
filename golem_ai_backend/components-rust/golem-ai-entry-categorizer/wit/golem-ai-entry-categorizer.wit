@@ -1,0 +1,29 @@
+package golem-ai: entry-categorizer;
+
+// See https://component-model.bytecodealliance.org/design/wit.html for more details about the WIT syntax
+
+interface golem-ai-entry-categorizer-api {
+  record raw-entry {
+    category: string,
+    data: string
+  }
+
+  enum entry-type {
+    bug,
+    feature
+  }
+
+  record entry {
+    category: string,
+    title: string,
+    description: string,
+    links: list<string>,
+    entry-type: entry-type
+  }
+
+  categorize: func(entry: raw-entry) -> result<entry, string>;
+}
+
+world golem-ai-entry-categorizer {
+  export golem-ai-entry-categorizer-api;
+}
