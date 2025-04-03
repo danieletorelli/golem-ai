@@ -42,19 +42,15 @@ impl Guest for AIWorker {
             0.7,
         );
 
-        match ask_openai(request, get_openai_api_key()) {
-            Ok(r) => {
-                if let Some(response) = r.get_message() {
-                    CONTEXT.with(|ctx| {
-                        ctx.borrow_mut().history.push(Response {
-                            message,
-                            response: response.clone(),
-                        });
+        match ask_openai(request, get_openai_api_key()).and_then(|r| r.get_message_or_err()) {
+            Ok(response) => {
+                CONTEXT.with(|ctx| {
+                    ctx.borrow_mut().history.push(Response {
+                        message,
+                        response: response.clone(),
                     });
-                    Ok(response)
-                } else {
-                    Err("Error: No message".to_string())
-                }
+                });
+                Ok(response)
             }
             Err(e) => Err(e),
         }

@@ -260,6 +260,14 @@ impl OpenAIResponse {
             None
         }
     }
+
+    pub fn get_message_or_err(&self) -> Result<String, String> {
+        if self.choices.len() > 0 {
+            Ok(self.choices[0].message.content.clone())
+        } else {
+            Err("No message in response".to_string())
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
