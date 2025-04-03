@@ -2,6 +2,8 @@
 mod bindings;
 
 use crate::bindings::exports::golem_ai::input_analyzer_exports::golem_ai_input_analyzer_api::*;
+use crate::bindings::golem_ai::entry_categorizer_client::golem_ai_entry_categorizer_client::GolemAiEntryCategorizerApi;
+use crate::bindings::golem_ai::entry_categorizer_client::golem_ai_entry_categorizer_client::{RawEntry as CategorizerRawEntry};
 // Import for using common lib (also see Cargo.toml for adding the dependency):
 // use common_lib::example_common_function;
 use common_lib::{ask_openai, get_openai_api_key, OpenAIRequest};
@@ -40,6 +42,15 @@ pub struct CategoryWithData {
     pub data: String,
 }
 
+impl From<CategoryWithData> for CategorizerRawEntry {
+    fn from(value: CategoryWithData) -> Self {
+        CategorizerRawEntry {
+            category: value.category,
+            data: value.data,
+        }
+    }
+}
+
 pub fn context() -> String {
     "You are a helpful assistant. Your role is to read and extract all the entries present in a Notion document written in markdown. The entries represent potential features or bugfixes or an application. They are categorized in specific sections, that represent the importance of each entry. Some of them are already done, others are in todo or in progress. Collect all the entries. Represent each entry as a JSON object containing, 2 keys: 'category' (string), representing the importance of the entry and 'data' (string), representing all the raw description of the feature or bug, including the nested elements of the entry with any link or code snippet. All those JSON object can be placed in a JSON list. The JSON can be compact, with no extra characters added. It's very important that you return me only a valid JSON structure, don't return any markdown prefix and don't anny any extra space or newline characters, because I will have to parse your response in JSON directly so it should be very clean and compact.".to_string()
 }
@@ -58,6 +69,22 @@ impl Guest for InputAnalyzer {
 
         match ask_openai(request, get_openai_api_key()).and_then(|r| r.get_message_or_err()) {
             Ok(response) => {
+                let values = get_categories_from_json_markdown(response.clone());
+                match values {
+                    Ok(values) => {
+                        for value in values {
+                            let api = GolemAiEntryCategorizerApi::new();
+                            let request: CategorizerRawEntry = value.into();
+                            let response = api.categorize(&request);
+                            println!("RESPONSE: {:?}", response);
+                        }
+                    }
+                    Err(e) => {
+                        println!("ERROR: {}", e);
+                        return Err(e);
+                    }
+                }
+
                 println!("RESPONSE: {:?}", get_categories_from_json_markdown(response.clone()));
                 println!("RESPONSE: {}", response.clone());
                 // CONTEXT.with(|ctx| {
