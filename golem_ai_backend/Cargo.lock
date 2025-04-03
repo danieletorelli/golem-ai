@@ -404,7 +404,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "golem_ai_worker"
+name = "golem_ai_input_analyzer"
 version = "0.0.1"
 dependencies = [
  "common-lib",

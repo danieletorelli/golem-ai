@@ -1,5 +1,5 @@
 [package]
-name = "golem_ai_worker"
+name = "golem_ai_input_analyzer"
 version = "0.0.1"
 edition = "2021"
 
@@ -9,7 +9,6 @@ crate-type = ["cdylib"]
 required-features = []
 
 [dependencies]
-# To use common shared libs, use the following:
 common-lib = { path = "../../common-rust/common-lib" }
 
 golem-rust = { workspace = true }
@@ -24,7 +23,7 @@ wit-bindgen-rt = { workspace = true }
 path = "wit-generated"
 
 [package.metadata.component.target.dependencies]
-"golem-ai:worker-exports" = { path = "wit-generated/deps/golem-ai_worker-exports" }
+"golem-ai:input-analyzer-exports" = { path = "wit-generated/deps/golem-ai_input-analyzer-exports" }
 # See https://github.com/bytecodealliance/cargo-component/blob/main/src/metadata.rs#L62
 
 # derives = ["serde::Serialize", "serde::Deserialize"]

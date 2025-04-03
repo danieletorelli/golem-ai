@@ -1,9 +1,10 @@
 #[allow(static_mut_refs)]
 mod bindings;
 
-use crate::bindings::exports::golem_ai::worker_exports::golem_ai_worker_api::*;
-use common_lib::*;
-
+use crate::bindings::exports::golem_ai::input_analyzer_exports::golem_ai_input_analyzer_api::*;
+// Import for using common lib (also see Cargo.toml for adding the dependency):
+// use common_lib::example_common_function;
+use common_lib::{ask_openai, get_openai_api_key, OpenAIRequest};
 use std::cell::RefCell;
 
 struct Context {
@@ -26,13 +27,13 @@ thread_local! {
     static CONTEXT: RefCell<Context> = RefCell::new(Context::default());
 }
 
-struct AIWorker;
+struct InputAnalyzer;
 
 pub fn context() -> String {
     "You are a helpful assistant. Your role is to read and extract all the entries present in a notion document. Some of them are already done".to_string()
 }
 
-impl Guest for AIWorker {
+impl Guest for InputAnalyzer {
     fn ask(message: String) -> Result<String, String> {
         let request = OpenAIRequest::new_system_and_user(
             "gpt-3.5-turbo".to_string(),
@@ -70,4 +71,4 @@ impl Guest for AIWorker {
     }
 }
 
-bindings::export!(AIWorker with_types_in bindings);
+bindings::export!(InputAnalyzer with_types_in bindings);
