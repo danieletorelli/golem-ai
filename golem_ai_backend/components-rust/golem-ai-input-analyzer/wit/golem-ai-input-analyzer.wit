@@ -3,14 +3,10 @@ package golem-ai: input-analyzer;
 // See https://component-model.bytecodealliance.org/design/wit.html for more details about the WIT syntax
 
 interface golem-ai-input-analyzer-api {
-  record history-entry {
-    message: string,
-    response: string
-  }
 
-  ask: func(message: string) -> result<string, string>;
+  analyze: func(input: string) -> result<string, string>;
 
-  history: func() -> list<history-entry>;
+  //history: func() -> list<history-entry>;
 }
 
 world golem-ai-input-analyzer {

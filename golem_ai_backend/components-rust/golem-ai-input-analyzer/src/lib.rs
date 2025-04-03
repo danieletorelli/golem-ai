@@ -7,13 +7,21 @@ use crate::bindings::exports::golem_ai::input_analyzer_exports::golem_ai_input_a
 use common_lib::{ask_openai, get_openai_api_key, OpenAIRequest};
 use std::cell::RefCell;
 
-struct Context {
+struct Input {
     input: String,
-    entries: Vec<String>,
+    entries: Vec<RawEntry>,
+}
+
+struct RawEntry {
+    category: String,
+    data: String,
 }
 
 thread_local! {
-    static CONTEXT: RefCell<Context> = RefCell::new();
+    static CONTEXT: RefCell<Input> = RefCell::new(Input {
+        input: "".to_string(),
+        entries: vec![],
+    })
 }
 
 struct InputAnalyzer;
@@ -23,41 +31,44 @@ pub fn context() -> String {
 }
 
 impl Guest for InputAnalyzer {
-    fn ask(message: String) -> Result<String, String> {
+    fn analyze(input: String) -> Result<String, String> {
+        println!("INPUT: {}", input.clone());
+
         let request = OpenAIRequest::new_system_and_user(
             "gpt-3.5-turbo".to_string(),
             context(),
-            message.clone(),
+            input.clone(),
             false,
             0.7,
         );
 
         match ask_openai(request, get_openai_api_key()).and_then(|r| r.get_message_or_err()) {
             Ok(response) => {
-                CONTEXT.with(|ctx| {
-                    ctx.borrow_mut().history.push(Response {
-                        message,
-                        response: response.clone(),
-                    });
-                });
+                println!("RESPONSE: {}", response.clone());
+                // CONTEXT.with(|ctx| {
+                //     ctx.borrow_mut().history.push(Response {
+                //         message,
+                //         response: response.clone(),
+                //     });
+                // });
                 Ok(response)
             }
             Err(e) => Err(e),
         }
     }
 
-    fn history() -> Vec<HistoryEntry> {
-        CONTEXT.with(|ctx| {
-            ctx.borrow()
-                .history
-                .iter()
-                .map(|r| HistoryEntry {
-                    message: r.message.clone(),
-                    response: r.response.clone(),
-                })
-                .collect()
-        })
-    }
+    // fn history() -> Vec<HistoryEntry> {
+    //     CONTEXT.with(|ctx| {
+    //         ctx.borrow()
+    //             .history
+    //             .iter()
+    //             .map(|r| HistoryEntry {
+    //                 message: r.message.clone(),
+    //                 response: r.response.clone(),
+    //             })
+    //             .collect()
+    //     })
+    // }
 }
 
 bindings::export!(InputAnalyzer with_types_in bindings);
