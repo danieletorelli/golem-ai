@@ -4,6 +4,7 @@ mod bindings;
 use crate::bindings::exports::golem_ai::input_analyzer_exports::golem_ai_input_analyzer_api::*;
 use crate::bindings::golem_ai::entry_categorizer_client::golem_ai_entry_categorizer_client::GolemAiEntryCategorizerApi;
 use crate::bindings::golem_ai::entry_categorizer_client::golem_ai_entry_categorizer_client::{RawEntry as CategorizerRawEntry};
+use crate::bindings::golem_ai::entry_categorizer_client::golem_ai_entry_categorizer_client::{Entry as CategorizedEntry};
 // Import for using common lib (also see Cargo.toml for adding the dependency):
 // use common_lib::example_common_function;
 use common_lib::{ask_openai, get_openai_api_key, OpenAIRequest};
@@ -34,6 +35,84 @@ fn get_categories_from_json_markdown(json: String) -> Result<Vec<CategoryWithDat
     let s = json.strip_prefix("```json").and_then(|s| s.strip_suffix("```")).unwrap_or(&json).trim();
     let entries: Vec<CategoryWithData> = serde_json::from_str(s).map_err(|e| e.to_string())?;
     Ok(entries)
+}
+
+fn categorize_entries_par(entries: Vec<CategoryWithData>) -> Vec<Result<CategorizedEntry,String>> {
+    println!("CATGORIZE ENTRIES: {}", entries.len());
+
+    let mut futures = vec![];
+    let mut subs = vec![];
+    for entry in entries {
+        let api = GolemAiEntryCategorizerApi::new();
+        let request: CategorizerRawEntry = entry.into();
+        let response = api.categorize(&request);
+        let sub = response.subscribe();
+        futures.push(response);
+        subs.push(sub);
+    }
+
+    let n = futures.len();
+
+    println!("CATGORIZE ENTRIES INVOKED: {}", n);
+    // https://learn.golem.cloud/common-language-guide/rpc#writing-non-blocking-remote-calls
+
+    let mut values: Vec<Result<CategorizedEntry,String>> = vec![Err("Not ready".to_string()); n];
+    let mut mapping: Vec<usize> = (0..n).collect();
+    let mut remaining = subs.iter().collect::<Vec<_>>();
+
+    // Repeatedly poll the futures until all of them are ready
+    while !remaining.is_empty() {
+        let poll_result = golem_rust::wasm_rpc::wasi::io::poll::poll(remaining.as_slice());
+
+        // poll_result is a list of indexes of the futures that are ready
+        for idx in &poll_result {
+            let counter_idx = mapping[*idx as usize];
+            let future = &futures[counter_idx];
+            let value = future
+                .get()
+                .expect("future did not return a value because after marked as completed");
+            values[counter_idx] = value;
+        }
+
+        // Removing the completed futures from the list
+        remaining = remaining
+            .into_iter()
+            .enumerate()
+            .filter_map(|(idx, item)| {
+                if poll_result.contains(&(idx as u32)) {
+                    None
+                } else {
+                    Some(item)
+                }
+            })
+            .collect();
+
+        // Updating the index mapping
+        mapping = mapping
+            .into_iter()
+            .enumerate()
+            .filter_map(|(idx, item)| {
+                if poll_result.contains(&(idx as u32)) {
+                    None
+                } else {
+                    Some(item)
+                }
+            })
+            .collect();
+    }
+
+    values
+}
+
+fn categorize_entries(entries: Vec<CategoryWithData>) -> Vec<Result<CategorizedEntry,String>> {
+    let api = GolemAiEntryCategorizerApi::new();
+    let mut results = vec![];
+    for entry in entries {
+        let request: CategorizerRawEntry = entry.into();
+        let response = api.blocking_categorize(&request);
+        results.push(response);
+    }
+    results
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -69,24 +148,20 @@ impl Guest for InputAnalyzer {
 
         match ask_openai(request, get_openai_api_key()).and_then(|r| r.get_message_or_err()) {
             Ok(response) => {
+                println!("ANALYZE RESPONSE: {}", response.clone());
+
                 let values = get_categories_from_json_markdown(response.clone());
                 match values {
                     Ok(values) => {
-                        for value in values {
-                            let api = GolemAiEntryCategorizerApi::new();
-                            let request: CategorizerRawEntry = value.into();
-                            let response = api.categorize(&request);
-                            println!("RESPONSE: {:?}", response);
-                        }
+                        let response = categorize_entries_par(values);
+                        println!("CATEGORIZE RESPONSE: {:?}", response);
                     }
                     Err(e) => {
-                        println!("ERROR: {}", e);
+                        println!("CATEGORIZE ERROR: {}", e);
                         return Err(e);
                     }
                 }
 
-                println!("RESPONSE: {:?}", get_categories_from_json_markdown(response.clone()));
-                println!("RESPONSE: {}", response.clone());
                 // CONTEXT.with(|ctx| {
                 //     ctx.borrow_mut().history.push(Response {
                 //         message,
@@ -95,7 +170,10 @@ impl Guest for InputAnalyzer {
                 // });
                 Ok(response)
             }
-            Err(e) => Err(e),
+            Err(e) => {
+                println!("ANALYZE ERROR: {}", e);
+                Err(e)
+            },
         }
     }
 
