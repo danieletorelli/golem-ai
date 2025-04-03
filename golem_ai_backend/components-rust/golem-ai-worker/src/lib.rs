@@ -4,7 +4,8 @@ mod bindings;
 use crate::bindings::exports::golem_ai::worker_exports::golem_ai_worker_api::*;
 // Import for using common lib (also see Cargo.toml for adding the dependency):
 // use common_lib::example_common_function;
-use common_lib::ask_ollama;
+use common_lib::*;
+
 use std::cell::RefCell;
 
 struct Context {
@@ -34,33 +35,51 @@ pub fn context() -> String {
 }
 
 impl Guest for AIWorker {
+    // fn ask(message: String) -> Result<String, String> {
+    //     let mut prompt = String::new();
+    //     prompt.push_str("Context: \n");
+    //     CONTEXT.with(|ctx| {
+    //         for response in &ctx.borrow().history {
+    //             prompt.push_str(&format!(
+    //                 "Message {}: Response: {}\n",
+    //                 response.message, response.response
+    //             ));
+    //         }
+    //     });
+    //     prompt.push_str(&format!("{}: ", message));
+    //     println!("Prompt: {}", prompt);
+    //
+    //     let response = ask_ollama(message.clone());
+    //
+    //     if let Ok(ollama_response) = response.clone() {
+    //         CONTEXT.with(|ctx| {
+    //             ctx.borrow_mut().history.push(Response {
+    //                 message,
+    //                 response: ollama_response.response,
+    //             });
+    //         });
+    //     } else {
+    //         println!("Error: {:?}", response);
+    //     }
+    //     response.map(|r| r.response)
+    // }
+
     fn ask(message: String) -> Result<String, String> {
-        let mut prompt = String::new();
-        prompt.push_str("Context: \n");
-        CONTEXT.with(|ctx| {
-            for response in &ctx.borrow().history {
-                prompt.push_str(&format!(
-                    "Message {}: Response: {}\n",
-                    response.message, response.response
-                ));
-            }
-        });
-        prompt.push_str(&format!("{}: ", message));
-        println!("Prompt: {}", prompt);
+        let request = OpenAIRequest::new_system_and_user("gpt-3.5-turbo".to_string(), "You are helpful assistant".to_string(), message.clone(), false, 0.7);
 
-        let response = ask_ollama(message.clone());
+        let response = ask_openai(request, get_openai_api_key());
 
-        if let Ok(ollama_response) = response.clone() {
+        if let Ok(r) = response.clone() {
             CONTEXT.with(|ctx| {
                 ctx.borrow_mut().history.push(Response {
                     message,
-                    response: ollama_response.response,
+                    response: r.get_message().unwrap_or("No message".to_string()),
                 });
             });
         } else {
             println!("Error: {:?}", response);
         }
-        response.map(|r| r.response)
+        response.map(|r| r.get_message().unwrap_or("No message".to_string()))
     }
 
     fn history() -> Vec<HistoryEntry> {
