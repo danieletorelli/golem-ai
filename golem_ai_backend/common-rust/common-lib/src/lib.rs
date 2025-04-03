@@ -30,10 +30,7 @@ pub fn ask_ollama(prompt: String) -> Result<OllamaResponse, String> {
         .post(&"http://ollama:11434/api/generate".to_string())
         .json(&request)
         .send()
-        .and_then(|x| {
-            println!("Response: {:?}", x);
-            x.json::<OllamaResponse>()
-        })
+        .and_then(|x| x.json::<OllamaResponse>())
         .map_err(|e| e.to_string())
 }
 
@@ -179,32 +176,44 @@ curl https://api.openai.com/v1/chat/completions \
 
 */
 
-
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OpenAIRequest {
     pub model: String,
     pub messages: Vec<OpenAIChatCompletionRequestMessage>,
     pub stream: bool,
-    pub temperature: f32
+    pub temperature: f32,
 }
 
 impl OpenAIRequest {
-    pub fn new(model: String, messages: Vec<OpenAIChatCompletionRequestMessage>, stream: bool, temperature: f32) -> OpenAIRequest {
+    pub fn new(
+        model: String,
+        messages: Vec<OpenAIChatCompletionRequestMessage>,
+        stream: bool,
+        temperature: f32,
+    ) -> OpenAIRequest {
         OpenAIRequest {
             model,
             messages,
             stream,
-            temperature
+            temperature,
         }
     }
 
-    pub fn new_system_and_user(model: String, system_content: String, user_content: String, stream: bool, temperature: f32) -> OpenAIRequest {
+    pub fn new_system_and_user(
+        model: String,
+        system_content: String,
+        user_content: String,
+        stream: bool,
+        temperature: f32,
+    ) -> OpenAIRequest {
         OpenAIRequest {
             model,
-            messages: vec![OpenAIChatCompletionRequestMessage::new_system(system_content), OpenAIChatCompletionRequestMessage::new_user(user_content)],
+            messages: vec![
+                OpenAIChatCompletionRequestMessage::new_system(system_content),
+                OpenAIChatCompletionRequestMessage::new_user(user_content),
+            ],
             stream,
-            temperature
+            temperature,
         }
     }
 }
@@ -212,28 +221,25 @@ impl OpenAIRequest {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OpenAIChatCompletionRequestMessage {
     pub role: String,
-    pub content: String
+    pub content: String,
 }
 
 impl OpenAIChatCompletionRequestMessage {
     pub fn new(role: String, content: String) -> OpenAIChatCompletionRequestMessage {
-        OpenAIChatCompletionRequestMessage {
-            role,
-            content
-        }
+        OpenAIChatCompletionRequestMessage { role, content }
     }
 
     pub fn new_user(content: String) -> OpenAIChatCompletionRequestMessage {
         OpenAIChatCompletionRequestMessage {
             role: "user".to_string(),
-            content
+            content,
         }
     }
 
     pub fn new_system(content: String) -> OpenAIChatCompletionRequestMessage {
         OpenAIChatCompletionRequestMessage {
             role: "system".to_string(),
-            content
+            content,
         }
     }
 }
@@ -260,14 +266,13 @@ impl OpenAIResponse {
 pub struct OpenAIChatCompletionResponseChoice {
     pub index: usize,
     pub message: OpenAIChatCompletionResponseMessage,
-    pub finish_reason: String
+    pub finish_reason: String,
 }
-
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OpenAIChatCompletionResponseMessage {
     pub role: String,
-    pub content: String
+    pub content: String,
 }
 
 pub fn ask_openai(request: OpenAIRequest, api_key: String) -> Result<OpenAIResponse, String> {
@@ -286,4 +291,3 @@ pub fn ask_openai(request: OpenAIRequest, api_key: String) -> Result<OpenAIRespo
 pub fn get_openai_api_key() -> String {
     std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set")
 }
-
