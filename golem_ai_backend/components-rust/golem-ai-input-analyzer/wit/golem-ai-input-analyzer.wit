@@ -3,10 +3,22 @@ package golem-ai: input-analyzer;
 // See https://component-model.bytecodealliance.org/design/wit.html for more details about the WIT syntax
 
 interface golem-ai-input-analyzer-api {
+  enum entry-type {
+    bug,
+    feature
+  }
 
-  analyze: func(input: string) -> result<string, string>;
+  record entry {
+    category: string,
+    title: string,
+    description: string,
+    links: list<string>,
+    entry-type: entry-type
+  }
 
-  //history: func() -> list<history-entry>;
+  analyze: func(input: string) -> result<_, string>;
+
+  get-results: func() -> list<entry>;
 }
 
 world golem-ai-input-analyzer {

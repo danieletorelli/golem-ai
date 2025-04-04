@@ -1,5 +1,6 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OllamaRequest {
@@ -289,6 +290,7 @@ pub fn ask_openai(request: OpenAIRequest, api_key: String) -> Result<OpenAIRespo
     let response = client
         .post("https://api.openai.com/v1/chat/completions")
         .header("Authorization", format!("Bearer {}", api_key))
+        .timeout(Duration::new(120, 0))
         .json(&request)
         .send()
         .map_err(|e| e.to_string())?;
