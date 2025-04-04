@@ -1,0 +1,28 @@
+id: golem-ai
+draft: true
+version: 0.0.2
+routes:
+  - method: Post
+    path: /analyze/{id}
+    binding:
+      component:
+        name: golem-ai:input-analyzer
+      workerName: |
+        let id: string = request.path.id;
+        "golem-ai-input-analyzer-${id}"
+      response: |
+        let input: string = request.body;
+        let result = golem-ai:input-analyzer-exports/golem-ai-input-analyzer-api.{analyze}(input);
+        let success = match result { ok(_) => true, _ => false };
+        {status: 200u8, body: {success: success}}
+  - method: Get
+    path: /analyze/{id}/results
+    binding:
+      component:
+        name: golem-ai:input-analyzer
+      workerName: |
+        let id: string = request.path.id;
+        "golem-ai-input-analyzer-${id}"
+      response: |
+        let result = golem-ai:input-analyzer-exports/golem-ai-input-analyzer-api.{get-results}();
+        {status: 200u8, body: result}
