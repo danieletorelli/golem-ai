@@ -34,7 +34,7 @@ fn get_categories_from_json_markdown(json: String) -> Result<Vec<RawEntry>, Stri
     Ok(entries)
 }
 
-fn categorize_entries_par(entries: Vec<RawEntry>) -> Vec<Result<CategorizedEntry, String>> {
+fn categorize_and_verify_entries_par(entries: Vec<RawEntry>) -> Vec<Result<CategorizedEntry, String>> {
     println!("CATEGORIZE ENTRIES: {}", entries.len());
 
     let mut futures = vec![];
@@ -42,7 +42,7 @@ fn categorize_entries_par(entries: Vec<RawEntry>) -> Vec<Result<CategorizedEntry
     for entry in entries {
         let api = GolemAiEntryCategorizerApi::new();
         let request: CategorizerRawEntry = entry.into();
-        let response = api.categorize(&request);
+        let response = api.categorize_and_verify(&request);
         let sub = response.subscribe();
         futures.push(response);
         subs.push(sub);
@@ -219,7 +219,7 @@ impl Guest for InputAnalyzer {
                 match values {
                     Ok(values) => {
                         println!("ANALYZE RESPONSE: {}", response.clone());
-                        let categorized = categorize_entries_par(values);
+                        let categorized = categorize_and_verify_entries_par(values);
                         let successfully_categorized: Vec<Entry> = categorized
                             .clone()
                             .into_iter()

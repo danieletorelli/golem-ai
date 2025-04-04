@@ -86,81 +86,99 @@ fn parse_verification_response(json: String) -> Result<VerificationResult, Strin
     serde_json::from_str(s).map_err(|e| e.to_string())
 }
 
+fn categorize_entry(raw_entry: RawEntry) -> Result<Entry, String> {
+    println!("ENTRY: {:?}", raw_entry.clone());
+
+    let request = OpenAIRequest::new_system_and_user(
+        "gpt-3.5-turbo".to_string(),
+        context(),
+        format!("CATEGORY: {}\nDATA: {}", raw_entry.category, raw_entry.data),
+        false,
+        0.7,
+    );
+
+    match ask_openai(request, get_openai_api_key()).and_then(|r| r.get_message_or_err()) {
+        Ok(response) => {
+            println!("RESPONSE: {}", response.clone());
+            let parsed = parse_categorization_response(response).map(|p| p.into());
+            println!("PARSED: {:?}", parsed.clone());
+            parsed
+        }
+        Err(e) => Err(e),
+    }
+}
+
+fn verify_entry(raw_entry: RawEntry, entry: Entry) -> Result<Entry, String> {
+    println!("RAW ENTRY: {:?}", raw_entry.clone());
+    println!("ENTRY: {:?}", entry.clone());
+
+    let request = OpenAIRequest::new_system_and_user(
+        "gpt-4o".to_string(),
+        verification_context(),
+        format!(
+            "RAW ENTRY CATEGORY: {}\nRAW ENTRY DATA: {}\nENTRY JSON: {}",
+            raw_entry.category,
+            raw_entry.data,
+            serde_json::to_string(&ParsedEntry::from(entry.clone())).unwrap()
+        ),
+        false,
+        0.7,
+    );
+
+    match ask_openai(request, get_openai_api_key()).and_then(|r| r.get_message_or_err()) {
+        Ok(response) => {
+            println!("RESPONSE: {}", response.clone());
+            let parsed = parse_verification_response(response).map(|p| p.into());
+            println!("PARSED: {:?}", parsed.clone());
+            match parsed {
+                Ok(VerificationResult {
+                       result,
+                       reason,
+                       fixed_entry,
+                   }) => {
+                    if result {
+                        println!("VERIFICATION PASSED");
+                        Ok(entry)
+                    } else {
+                        println!("VERIFICATION FAILED\nREASON: {}", reason.unwrap());
+                        if let Some(fixed_entry) = fixed_entry {
+                            println!("FIXED ENTRY: {:?}", fixed_entry.clone());
+                            Ok(fixed_entry.into())
+                        } else {
+                            Err("Verification failed and no proposed fixed entry".to_string())
+                        }
+                    }
+                }
+                Err(e) => {
+                    println!("ERROR: {}", e);
+                    Err(e)
+                }
+            }
+        }
+        Err(e) => {
+            println!("ERROR: {}", e);
+            Err(e)
+        }
+    }
+}
+
 impl Guest for Categorizer {
     fn categorize(raw_entry: RawEntry) -> Result<Entry, String> {
-        println!("ENTRY: {:?}", raw_entry.clone());
-
-        let request = OpenAIRequest::new_system_and_user(
-            "gpt-3.5-turbo".to_string(),
-            context(),
-            format!("CATEGORY: {}\nDATA: {}", raw_entry.category, raw_entry.data),
-            false,
-            0.7,
-        );
-
-        match ask_openai(request, get_openai_api_key()).and_then(|r| r.get_message_or_err()) {
-            Ok(response) => {
-                println!("RESPONSE: {}", response.clone());
-                let parsed = parse_categorization_response(response).map(|p| p.into());
-                println!("PARSED: {:?}", parsed.clone());
-                parsed
-            }
-            Err(e) => Err(e),
-        }
+       categorize_entry(raw_entry)
     }
 
     fn verify(raw_entry: RawEntry, entry: Entry) -> Result<Entry, String> {
-        println!("RAW ENTRY: {:?}", raw_entry.clone());
-        println!("ENTRY: {:?}", entry.clone());
+       verify_entry(raw_entry, entry)
+    }
 
-        let request = OpenAIRequest::new_system_and_user(
-            "gpt-4o".to_string(),
-            verification_context(),
-            format!(
-                "RAW ENTRY CATEGORY: {}\nRAW ENTRY DATA: {}\nENTRY JSON: {}",
-                raw_entry.category,
-                raw_entry.data,
-                serde_json::to_string(&ParsedEntry::from(entry.clone())).unwrap()
-            ),
-            false,
-            0.7,
-        );
+    fn categorize_and_verify(raw_entry: RawEntry) -> Result<Entry, String> {
+       let categorized_entry = categorize_entry(raw_entry.clone());
 
-        match ask_openai(request, get_openai_api_key()).and_then(|r| r.get_message_or_err()) {
-            Ok(response) => {
-                println!("RESPONSE: {}", response.clone());
-                let parsed = parse_verification_response(response).map(|p| p.into());
-                println!("PARSED: {:?}", parsed.clone());
-                match parsed {
-                    Ok(VerificationResult {
-                        result,
-                        reason,
-                        fixed_entry,
-                    }) => {
-                        if result {
-                            println!("VERIFICATION PASSED");
-                            Ok(entry)
-                        } else {
-                            println!("VERIFICATION FAILED\nREASON: {}", reason.unwrap());
-                            if let Some(fixed_entry) = fixed_entry {
-                                println!("FIXED ENTRY: {:?}", fixed_entry.clone());
-                                Ok(fixed_entry.into())
-                            } else {
-                                Err("Verification failed and no proposed fixed entry".to_string())
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        println!("ERROR: {}", e);
-                        Err(e)
-                    }
-                }
-            }
-            Err(e) => {
-                println!("ERROR: {}", e);
-                Err(e)
-            }
-        }
+       if let Ok(categorized_entry) = categorized_entry {
+           verify_entry(raw_entry, categorized_entry)
+       } else {
+           categorized_entry
+       }
     }
 }
 

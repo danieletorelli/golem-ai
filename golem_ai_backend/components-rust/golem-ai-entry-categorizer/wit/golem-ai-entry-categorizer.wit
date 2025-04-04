@@ -24,6 +24,8 @@ interface golem-ai-entry-categorizer-api {
   categorize: func(raw-entry: raw-entry) -> result<entry, string>;
 
   verify: func(raw-entry: raw-entry, entry: entry) -> result<entry, string>;
+
+  categorize-and-verify: func(raw-entry: raw-entry) -> result<entry, string>;
 }
 
 world golem-ai-entry-categorizer {
