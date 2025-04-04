@@ -20,21 +20,11 @@ wit-bindgen-rt = { workspace = true }
 
 [package.metadata.component.bindings]
 
-[package.metadata.component.bindings.with]
-"wasi:clocks/wall-clock@0.2.0" = "golem_rust::wasm_rpc::wasi::clocks::wall_clock"
-"wasi:io/poll@0.2.0" = "golem_rust::wasm_rpc::wasi::io::poll"
-"golem:rpc/types@0.2.0" = "golem_rust::wasm_rpc::golem_rpc_0_2_x::types"
-
 [package.metadata.component.target]
 path = "wit-generated"
 
 [package.metadata.component.target.dependencies]
-"wasi:clocks" = { path = "wit-generated/deps/clocks" }
-"wasi:io" = { path = "wit-generated/deps/io" }
-"golem:rpc" = { path = "wit-generated/deps/golem-rpc" }
-"golem-ai:input-analyzer-client" = { path = "wit-generated/deps/golem-ai_input-analyzer-client" }
 "golem-ai:entry-categorizer-exports" = { path = "wit-generated/deps/golem-ai_entry-categorizer-exports" }
-"golem-ai:input-analyzer-exports" = { path = "wit-generated/deps/golem-ai_input-analyzer-exports" }
 # See https://github.com/bytecodealliance/cargo-component/blob/main/src/metadata.rs#L62
 
 # derives = ["serde::Serialize", "serde::Deserialize"]

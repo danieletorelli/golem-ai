@@ -17,7 +17,7 @@ components:
 # Example for adding dependencies for Worker to Worker communication:
 # See https://learn.golem.cloud/docs/app-manifest#fields_dependencies for more information
 #
-dependencies:
-  golem-ai:entry-categorizer:
-  - target: golem-ai:input-analyzer
-    type: wasm-rpc
+#dependencies:
+#  golem-ai:entry-categorizer:
+#  - target: golem-ai:input-analyzer
+#    type: wasm-rpc
