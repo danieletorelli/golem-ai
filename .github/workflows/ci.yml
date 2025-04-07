@@ -111,6 +111,8 @@ jobs:
         uses: cargo-bins/cargo-binstall@v1.12.2
       - name: Install cargo-component
         run: cargo binstall --no-confirm cargo-component || true
+      - name: Install protobuf
+        uses: arduino/setup-protoc@v3
       - name: Compile
         run: golem-cli app build -b release
       - name: Save components
