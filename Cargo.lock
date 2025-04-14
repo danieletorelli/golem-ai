@@ -412,7 +412,7 @@ dependencies = [
  "reqwest 0.12.15",
  "serde",
  "serde_json",
- "wit-bindgen-rt 0.40.0",
+ "wit-bindgen-rt 0.41.0",
 ]
 
 [[package]]
@@ -424,7 +424,7 @@ dependencies = [
  "reqwest 0.12.15",
  "serde",
  "serde_json",
- "wit-bindgen-rt 0.40.0",
+ "wit-bindgen-rt 0.41.0",
 ]
 
 [[package]]
