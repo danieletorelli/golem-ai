@@ -8,14 +8,9 @@ services:
     container_name: golem_ai_ollama
     restart: unless-stopped
     ports:
-      - 11434:11434
+      - "11434:11434"
     volumes:
       - data:/root/.ollama
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: "0.5"  # Limits the container to 80% of CPU
-#          memory: "4g"  # Adjust memory as needed
     environment:
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_PORT=11434
@@ -26,8 +21,8 @@ services:
     container_name: golem_ai_golem
     restart: unless-stopped
     ports:
-      - 9006:9006
-      - 9881:9881
+      - "9006:9006"
+      - "9881:9881"
 
 volumes:
   data:
